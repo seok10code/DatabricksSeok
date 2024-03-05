@@ -1,0 +1,1683 @@
+# Databricks notebook source
+# DBTITLE 0,m
+# MAGIC %md
+# MAGIC # Unity Catalog 주요 활용 방안
+# MAGIC Ref : https://learn.microsoft.com/ko-kr/azure/databricks/data-governance/unity-catalog/
+# MAGIC
+# MAGIC - 관리자는 표준 ANSI SQL을 기반으로 한 익숙한 구문을 사용하여 기존 데이터 레이크의 카탈로그, 스키마, 테이블 및 뷰 수준에서 권한을 부여할 수 있다.
+# MAGIC - 일반적인 RDBMS에서 제공하는 카탈로그와 같은 문법 사용 가능(주로 Postgresql과 유사)
+# MAGIC - 오브젝트 스토리지 기반 분산처리 플랫폼 환경에 따른 정보 조회의 한계점을 Databricks 기능/ SQL/ PySpark 기능의 응용을 통해 사용자정의 카탈로그뷰 제공
+
+# COMMAND ----------
+
+# DBTITLE 1,카탈로그 리스트 조회
+# MAGIC %sql
+# MAGIC show catalogs
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC use catalog hansol_paper ;
+
+# COMMAND ----------
+
+# DBTITLE 1,카탈로그.스키마 자동 입력(=search_path of postgresql)
+# MAGIC %sql
+# MAGIC use  hansol_paper.mes ;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC show schemas in hansol_paper
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 테이블 리스트 조회
+
+# COMMAND ----------
+
+# DBTITLE 1,테이블 리스트 조회(1)
+# MAGIC %sql
+# MAGIC show tables 
+
+# COMMAND ----------
+
+# DBTITLE 1,테이블 리스트 조회(2)
+# MAGIC %sql
+# MAGIC show tables IN hansol_paper.mes
+
+# COMMAND ----------
+
+# DBTITLE 1,테이블 리스트 조회(3)
+# MAGIC %sql
+# MAGIC show tables IN hansol_paper.mes LIKE 'bi_pr1t_cm|bi_pr1t_cm_in'
+
+# COMMAND ----------
+
+# DBTITLE 1,테이블 리스트 조회(4)
+# MAGIC %sql
+# MAGIC select --t.comment, t.created, t.*
+# MAGIC     t.table_name, t.*
+# MAGIC   from system.information_schema.tables t
+# MAGIC  where 0=0
+# MAGIC    --and table_catalog = 'hancol_cat' and table_schema = 'test'   
+# MAGIC    and table_schema not in ('information_schema')
+# MAGIC    --and table_schema in ('mes')
+# MAGIC    and t.created like '2023-12-26%'
+# MAGIC  order by t.created desc, t.table_catalog, t.table_schema, t.table_name
+# MAGIC ;  
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 테이블 및 컬럼 코멘트 업데이트
+
+# COMMAND ----------
+
+# DBTITLE 1,테이블 코멘트 달기
+# MAGIC %sql
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_cm3t_jegong IS '08시 기준시점 제공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr4t_paji IS '파지정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj2t_sc_use IS '시트커터 재공실적 연결정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj2t_sc_out IS '시트커터 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj4t_sw_in IS '쉬링크포장 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj4t_sw_use IS '쉬링크포장 재공실적 연결정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj4t_sw_out IS '쉬링크포장 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj3t_rw_use IS '림포장 재공실적 연결정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr4t_stop IS '중지정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr2t_roll_use IS '리와인더 재공실적 연결정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr2t_roll IS '리와인더 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj7t_rlw_in IS '롤포장 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj7t_rlw_out IS '롤포장 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj3t_rw_in IS '림포장 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj3t_rw_out IS '림포장 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj6t_sm_out IS '슬리터 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj2t_sc_in IS '시트커터 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj10t_ms_use IS '선별장재공실적 연결정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj10t_ms_in IS '선별장재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj10t_ms_out IS '선별장생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_raw_mixed_020t IS '배합비'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj6t_sm_in IS '슬리터 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_jr IS '초지 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj1t_warehouse_out IS '가공 재출고'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj1t_warehouse_in IS '가공 재입고'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr2t_roll_in IS '리와인더 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj5t_gc_use IS '길로틴커터 재공실적 연결정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj5t_gc_in IS '길로틴커터 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_cm IS '코타 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_cm_in IS '코타 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_cm_use IS '코타 재공실적 연결정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_wj5t_gc_out IS '길로틴커터 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_sp IS '슈퍼 카렌더 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_rr_in IS '리릴러 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_rr IS '리릴러 생산실적'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_rr_use IS '리릴러 재공실적 연결정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_sp_in IS '슈퍼카렌더 재공'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.bi_pr1t_sp_use IS '슈퍼카렌더 재공실적 연결정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.ipis.paperpi_log IS '수집할 테그의 진행상황 (어디까지 보냈지)'; 
+# MAGIC COMMENT ON TABLE hansol_paper.ipis.paperpi_data IS '수집된 태그정보 테이블 - Azure 로 보낼데이터'; 
+
+# COMMAND ----------
+
+# DBTITLE 1,2023.12.26 업데이트
+# MAGIC %sql
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_batch_master IS '배치정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_material_m IS '자재정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_cm1t_std_code IS '시스템 공통코드'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_zppm011t IS '중지원인코드(소분류)'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_zppm014t IS '파지원인코드(소분류)'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_zppm010t IS '중지원인코드(중분류)'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_matr_code IS '원재료 코드 정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_cm1t_paper_type IS '지종정보'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_zppm013t IS '파지원인코드(중분류)'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_zppm012t IS '파지원인코드(대분류)'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_zppm009t IS '중지원인코드(대분류)'; 
+# MAGIC COMMENT ON TABLE hansol_paper.mes.mbi_zppm007t IS '귀책코드'; 
+
+# COMMAND ----------
+
+# DBTITLE 1,테이블 컬럼 코멘트 달기
+# MAGIC %sql
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN cre_date COMMENT "일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN gj_gubun COMMENT "공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN prod_no COMMENT "오브젝트번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN lot_no COMMENT "MES LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN theo_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN remain_wgt COMMENT "잔량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN insert_dt COMMENT "입력일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN prod_gubun COMMENT "작업구분(1:시점재공, 2:실시간재공)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN cm_no COMMENT "CM호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN hero_lot_no COMMENT "HERO LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN pm_no COMMENT "PM호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN group_no COMMENT "그룹오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN export_yn COMMENT "수출구분(Y:수출, N:내수)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN hogi COMMENT "호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN paper_type COMMENT "지종코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_cm3t_jegong ALTER COLUMN color COMMENT "색상코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN jr_no COMMENT "ROLL/SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN wonji_rl_no COMMENT "원지ROLL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN han_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN cm_no COMMENT "호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN cm_speed COMMENT "CM속도"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN real_bp_b_wgt COMMENT "실제BP평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN real_cp_b_wgt COMMENT "실제CP평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN bal_color COMMENT "발색구분(BLACK,BLUE,NONE..)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN hero_version COMMENT "HERO버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN hero_prod_seq COMMENT "HERO 생산순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN roll_set_no COMMENT "권취번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN roll_seq COMMENT "권취순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN start_time COMMENT "생산시작시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN end_time COMMENT "생산종료시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN spend_time COMMENT "생산소요시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN width COMMENT "생산지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN length COMMENT "생산길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN weight COMMENT "생산중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN coated_cnt COMMENT "코팅횟수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN coated_yn COMMENT "코팅최종완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcomm_cutt COMMENT "지절수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcmsl_stnu COMMENT "스트리크수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcmsl_mido COMMENT "미도피"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcomm_late COMMENT "후박"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcmsl_cost COMMENT "코팅면상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcmsl_chma COMMENT "체인마크"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcmxx_uvin COMMENT "UV검사"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcomm_cnlo COMMENT "연결처"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcomm_func COMMENT "구멍수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcomm_bcor COMMENT "전공정조치"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm ALTER COLUMN zcomm_sein COMMENT "전달정보"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN jr_no COMMENT "ROLL/SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN wonji_rl_no COMMENT "원지ROLL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN cm_no COMMENT "CM호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN in_wgt COMMENT "입고량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN use_wgt COMMENT "사용량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN coated_cnt COMMENT "코팅횟수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN remain_len COMMENT "잔량길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN use_yn COMMENT "사용상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN complete_yn COMMENT "재공완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_use ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_use ALTER COLUMN jr_no COMMENT "ROLL/SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_use ALTER COLUMN in_jr_no COMMENT "입고ROLL/SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_use ALTER COLUMN use_length COMMENT "사용길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_use ALTER COLUMN use_wgt COMMENT "사용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_use ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_use ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_use ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_cm_use ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN jr_no COMMENT "SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN han_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN paper_prod_seq COMMENT "생산순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN rs_gubun COMMENT "롤구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN paper_type COMMENT "지종코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN pl_width COMMENT "계획지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN real_b_wgt COMMENT "실평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN pm_speed COMMENT "초지기속도"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN caliper COMMENT "두께"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN weight COMMENT "실중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN theo_wgt COMMENT "이론중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN prod_start COMMENT "생산시작시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN prod_end1 COMMENT "생산종료시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN spend_time COMMENT "생산소요시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN pr_length COMMENT "생산용길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN pr_wgt COMMENT "생산용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN use_yn COMMENT "사용여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zcomm_func COMMENT "구멍수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zcomm_cnnu COMMENT "연결수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zcomm_cutt COMMENT "지절수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zpmxx_wrin COMMENT "주름상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zcomm_late COMMENT "후박상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zrexx_stre COMMENT "스트리크"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zpmxx_spot COMMENT "염료반점"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zpmxx_core COMMENT "염료핵"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zpmxx_spqu COMMENT "염료반점수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zpmxx_fspo COMMENT "초반점"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zpmxx_fsqu COMMENT "초반점수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zpmxx_roll COMMENT "롤마크"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zpmxx_mark COMMENT "찍힘"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_jr ALTER COLUMN zcomm_sein COMMENT "전달정보"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN jr_no COMMENT "SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN lot_no COMMENT "Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN han_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN rr_no COMMENT "호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN start_time COMMENT "생산시작시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN end_time COMMENT "생산종료시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN spend_time COMMENT "생산소요시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN width COMMENT "생산지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN length COMMENT "생산길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN weight COMMENT "생산량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN grade COMMENT "등급(1:정품,2:B급,3:보류,9:파지)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN join_gubun COMMENT "릴연결구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN work_cnt COMMENT "작업수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN zcomm_culo COMMENT "권취방향"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN zcomm_func COMMENT "구멍수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN zcomm_cnnu COMMENT "연결수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN zcomm_late COMMENT "후박"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN zcomm_bcor COMMENT "전공정조치"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr ALTER COLUMN zcomm_sein COMMENT "전달정보"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN jr_no COMMENT "SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN rr_no COMMENT "RR호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN in_wgt COMMENT "입고량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN use_wgt COMMENT "사용량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN remain_len COMMENT "잔량길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN use_yn COMMENT "사용상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN complete_yn COMMENT "재공완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_use ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_use ALTER COLUMN jr_no COMMENT "SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_use ALTER COLUMN in_jr_no COMMENT "입고SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_use ALTER COLUMN use_length COMMENT "사용길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_use ALTER COLUMN use_wgt COMMENT "사용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_use ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_use ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_use ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_rr_use ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN jr_no COMMENT "SPOOL/ROLL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN han_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN sp_no COMMENT "호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN hero_prod_seq COMMENT "HERO 생산순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN roll_set_no COMMENT "권취번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN roll_seq COMMENT "권취순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN start_time COMMENT "생산시작시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN end_time COMMENT "생산종료시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN spend_time COMMENT "생산소요시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN length COMMENT "생산길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN weight COMMENT "생산량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN work_cnt COMMENT "작업수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN zspxx_pres COMMENT "선압"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN zspxx_topt COMMENT "TOP온도"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN zspxx_btmt COMMENT "BOTTOM온도"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN zspxx_nipn COMMENT "NIP수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN zcomm_bcor COMMENT "전공정조치"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp ALTER COLUMN zcomm_sein COMMENT "전달정보"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN jr_no COMMENT "SPOOL/ROLL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN sp_no COMMENT "SP호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN in_wgt COMMENT "입고량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN use_wgt COMMENT "사용량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN remain_len COMMENT "잔량길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN use_yn COMMENT "사용상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN complete_yn COMMENT "재공완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN hero_prod_seq COMMENT "HERO 생산순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN roll_set_no COMMENT "권취번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN roll_seq COMMENT "권취순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_use ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_use ALTER COLUMN jr_no COMMENT "ROLL/SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_use ALTER COLUMN in_jr_no COMMENT "입고ROLL/SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_use ALTER COLUMN use_length COMMENT "사용길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_use ALTER COLUMN use_wgt COMMENT "사용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_use ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_use ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_use ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr1t_sp_use ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN roll_no COMMENT "롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN han_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN rew_no COMMENT "호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN hero_lot_no COMMENT "HERO Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN hero_prod_seq COMMENT "HERO 생산순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN lot_no COMMENT "Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN roll_set_no COMMENT "권취번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN roll_seq COMMENT "권취순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN paper_type COMMENT "지종코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN p_width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN wj_width COMMENT "완정지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN roll_gubun COMMENT "롤구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN roll_type COMMENT "정/역권취구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN p_dia COMMENT "직경"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN p_length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN t_weight COMMENT "실중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN theo_wgt COMMENT "이론중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN core COMMENT "지관"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN sr_yn COMMENT "롤제품여부(원지,반제품)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN itchar COMMENT "특성코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN grade_update_person COMMENT "등급변경자사번"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN grade_update_date COMMENT "등급변경일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN start_time COMMENT "생산시작시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN end_time COMMENT "생산종료시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN spend_time COMMENT "생산소요시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN sales_empno COMMENT "영업사원번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN sales_empnm COMMENT "영업사원성명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN sale_gubun COMMENT "판매구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN plan_flag COMMENT "계획구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zcomm_culo COMMENT "권취방향"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zcomm_cnlo COMMENT "연결처"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zcomm_cnnu COMMENT "연결수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zcomm_func COMMENT "구멍수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zrexx_glaz COMMENT "GLAZING"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zcomm_late COMMENT "후박"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zrexx_stre COMMENT "스트리크"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zrexx_budd COMMENT "번들"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zpmxx_roll COMMENT "Roll Mark"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zwwxx_coqu COMMENT "이음수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zcomm_part COMMENT "지분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zcomm_bcor COMMENT "전공정조치"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN zcomm_sein COMMENT "전달정보"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN wait_yn COMMENT "하권여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN wrk_ord_no COMMENT "작업지시번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN roll_wrk_ord_no COMMENT "작업지시오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll ALTER COLUMN plan_id COMMENT "계획 PLAN_ID"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN jr_no COMMENT "SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN rew_no COMMENT "REWINDER호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN paper_prod_seq COMMENT "생산순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN rs_gubun COMMENT "롤구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN in_wgt COMMENT "입고량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN use_wgt COMMENT "사용량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN remain_len COMMENT "잔량길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN start_time COMMENT "재단시작시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN end_time COMMENT "재단종료시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN use_yn COMMENT "사용상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN complete_yn COMMENT "재공완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN wait_yn COMMENT "하권여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_in ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN roll_no COMMENT "ROLL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN jr_no COMMENT "SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN use_length COMMENT "사용길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN use_wgt COMMENT "사용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN link_yn COMMENT "연결구분(스풀연결시 이전스풀에 Y)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN org_length COMMENT "원길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr2t_roll_use ALTER COLUMN org_wgt COMMENT "원중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN prod_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN gj_gubun COMMENT "공정구분코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN gj_no COMMENT "호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN prod_no COMMENT "생산오브젝트번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN in_prod_no COMMENT "사용오브젝트번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN lot_no COMMENT "Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN paper_type COMMENT "지종코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN skid_yn COMMENT "SKID여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN paji_dt COMMENT "발생시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN paji_code_fst COMMENT "파지코드(대)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN paji_code_snd COMMENT "파지코드(중)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN paji_code_trd COMMENT "파지코드(소)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN cause_code COMMENT "귀책코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN paji_qty COMMENT "파지수량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN paji_wgt COMMENT "파지중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN batch_no COMMENT "생산배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN in_batch_no COMMENT "사용배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN work_cnt COMMENT "작업횟수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN bigo COMMENT "비고"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN in_gj_gubun COMMENT "재공공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_paji ALTER COLUMN in_gj_no COMMENT "재공호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN han_date COMMENT "중지일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN gj_gubun COMMENT "공정구분코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN gj_no COMMENT "호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN stop_from COMMENT "중지시작시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN stop_to COMMENT "중지완료시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN stop_time COMMENT "중지시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN lot_no COMMENT "Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN paper_type COMMENT "지종코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN stop_code_fst COMMENT "중지코드(대분류)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN stop_code_snd COMMENT "중지코드(중분류)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN stop_code_trd COMMENT "중지코드(소분류)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN stop_code COMMENT "중지코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN cause_code COMMENT "귀책사유"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN jr_no COMMENT "점보롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN insert_dt COMMENT "입력시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN update_dt COMMENT "수정시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_pr4t_stop ALTER COLUMN bigo COMMENT "비고"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN prod_sdate COMMENT "시작일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN prod_stime COMMENT "시작시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN prod_edate COMMENT "종료일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN prod_etime COMMENT "종료시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN lot_no COMMENT "생산LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN pmatnr COMMENT "자재그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN matnr COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN brand COMMENT "브랜드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN shift COMMENT "작업반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN line_no COMMENT "라인번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN lot_baehap COMMENT "LOT별 배합비"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN lot_seq COMMENT "순번"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN mantr2 COMMENT "PM반제품"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_raw_mixed_020t ALTER COLUMN freeness COMMENT "여수도"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN pile_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN ms_no COMMENT "선별호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN length COMMENT "세로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN pile_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN remain_sok COMMENT "잔량속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN use_yn COMMENT "사용여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN complete_yn COMMENT "사용완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN hero_version COMMENT "HERO버전"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN pile_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN prod_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN length COMMENT "세로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN ms_no COMMENT "선별호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN hero_version COMMENT "HERO버전"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN pile_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN double_cut COMMENT "쌍폭재단"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_out ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN pile_no_in COMMENT "입고팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN pile_no_out COMMENT "출고팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN use_sok COMMENT "사용속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN use_wgt COMMENT "사용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN good_cnt COMMENT "양품속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN bad_cnt COMMENT "불량속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN bad_wgt COMMENT "불량속수의중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN batch_no COMMENT "생산배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN in_batch_no COMMENT "사용배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj10t_ms_use ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN prod_no COMMENT "롤/제조번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN work_group COMMENT "작업그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN cbo_seq COMMENT "CBO일련번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN material_no COMMENT "자재코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN batch_code COMMENT "배치코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN suryang COMMENT "수량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN weight COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN from_plant COMMENT "FROM_PLANT"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN to_plant COMMENT "인도처"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN position COMMENT "저장위치"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN ip_check_date COMMENT "제지입고확인일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN csn_del_date COMMENT "CSN삭제일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN won_roll_no COMMENT "원지롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN cancel_date COMMENT "취소일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN gloss_nm COMMENT "광택명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN length COMMENT "세로(길이)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN bef_proc COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN ar_no COMMENT "창고호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN in_gubun COMMENT "입고구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN out_yn COMMENT "출고여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN hoji COMMENT "호지"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN bef_hoji COMMENT "이전호지"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN bef_ar COMMENT "이전창고"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN move_date COMMENT "이동일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN out_date COMMENT "출고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN roll_gubun COMMENT "롤구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN hero_lot_no COMMENT "HERO LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN out_cancel COMMENT "출고취소구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN pack_type COMMENT "포장방법"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN pallet_barcode COMMENT "팔렛바코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN container_no COMMENT "컨테이너번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN cm_no COMMENT "코터호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN banip_gubun COMMENT "반입구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN recut_gubun COMMENT "재재단구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN link_cnt COMMENT "연결수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN prod_code COMMENT "뉴런관리코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN csn_order_no COMMENT "입고오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_in ALTER COLUMN won_work_group COMMENT "원납품번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN prod_no COMMENT "롤/제조번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN ar_no COMMENT "출고창고"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN material_no COMMENT "자재코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN batch_code COMMENT "배치코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN suryang COMMENT "수량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN weight COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN out_date COMMENT "출고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN out_confirm_dt COMMENT "출고확인일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN length COMMENT "세로(길이)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN gloss_nm COMMENT "광택명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN hoji COMMENT "호지"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN roll_gubun COMMENT "롤구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN in_gubun COMMENT "입고구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN insert_dt COMMENT "일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN bigo COMMENT "비고"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN pack_type COMMENT "포장방법"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN pallet_barcode COMMENT "팔렛바코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN hero_prod_seq COMMENT "HERO 생산순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN roll_set_no COMMENT "권취번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN roll_seq COMMENT "권취순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN dia COMMENT "직경"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN cm_no COMMENT "코터호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN banip_gubun COMMENT "반입구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN recut_gubun COMMENT "재재단구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN link_cnt COMMENT "연결수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj1t_warehouse_out ALTER COLUMN prod_code COMMENT "뉴런관리코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN roll_no COMMENT "롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN sc_no COMMENT "재단호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN hero_lot_no COMMENT "HERO Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN hero_prod_seq COMMENT "HERO 생산순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN roll_seq COMMENT "권취순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN lot_no COMMENT "Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN jr_no COMMENT "SPOOL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN bundle_no COMMENT "처리번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN dia COMMENT "직경"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN theo_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN remain_len COMMENT "잔량길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN use_yn COMMENT "사용상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN complete_yn COMMENT "사용완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN speed COMMENT "재단속도"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN bigo COMMENT "비고"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_in ALTER COLUMN recut_gubun COMMENT "재재단구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN pile_no COMMENT "Pile번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN pallet_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN length COMMENT "세로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN prod_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN sc_no COMMENT "재단호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN start_time COMMENT "생산시작시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN end_time COMMENT "생산종료시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN spend_time COMMENT "생산소요시간"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN hero_version COMMENT "HERO버전"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN jr_no COMMENT "점보롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN pok_cnt COMMENT "폭수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN good_cnt COMMENT "양품속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN bad_cnt COMMENT "불량속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN pile_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN sum_roll COMMENT "재단롤수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN grade COMMENT "팔렛등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN zscxx_paqm COMMENT "파레트품질"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN zcomm_part COMMENT "지분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN zscsl_slst COMMENT "재단면상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN zcomm_bcor COMMENT "전공정조치"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN zcomm_sein COMMENT "전달정보"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN order_gubun COMMENT "오더종류"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_out ALTER COLUMN wrk_ord_no COMMENT "작업지시번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN bundle_no COMMENT "처리번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN roll_no COMMENT "롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN pile_no COMMENT "Pile번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN use_length COMMENT "사용길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN use_wgt COMMENT "사용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN batch_no COMMENT "생산배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN in_batch_no COMMENT "사용배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj2t_sc_use ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN pile_no COMMENT "Pile번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN pallet_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN length COMMENT "세로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN rw_no COMMENT "포장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN hero_lot_no COMMENT "HERO Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN lot_no COMMENT "대표Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN jr_no COMMENT "대표점보롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN roll_no COMMENT "대표롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN pile_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN remain_sok COMMENT "잔량속"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN use_yn COMMENT "사용상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN complete_yn COMMENT "사용완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_in ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN pile_no COMMENT "제조/파일번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN pallet_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN prod_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN pattern COMMENT "대표상표 인쇄 여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN length COMMENT "세로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN rw_no COMMENT "포장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN hero_version COMMENT "HERO버전"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN lot_no COMMENT "대표Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN jr_no COMMENT "대표점보롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN roll_no COMMENT "대표롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN itchar COMMENT "특성코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN pile_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN rem_out_yn COMMENT "잔량출고여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN zscxx_fold COMMENT "접힘여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN zcssc_past COMMENT "포장상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN zpatt_spnm COMMENT "1파레트속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN zcomm_bcor COMMENT "전공정조치"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_out ALTER COLUMN zcomm_sein COMMENT "전달정보"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN in_pile_no COMMENT "Pile번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN pile_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN use_sok COMMENT "사용속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN use_wgt COMMENT "사용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN batch_no COMMENT "생산배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN in_batch_no COMMENT "사용배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj3t_rw_use ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN pile_no COMMENT "Pile번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN pallet_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN length COMMENT "세로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN sw_no COMMENT "Shrink호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN hero_lot_no COMMENT "HERO LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN hero_version COMMENT "HERO버전"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN jr_no COMMENT "JR번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN pile_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN remain_sok COMMENT "잔량속"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN use_yn COMMENT "사용상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN complete_yn COMMENT "사용완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN prod_no COMMENT "제조번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN pallet_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN out_date COMMENT "출고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN sw_no COMMENT "포장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN hero_lot_no COMMENT "HERO Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN lot_no COMMENT "대표Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN paper_type COMMENT "지종코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN length COMMENT "세로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN pile_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN itchar COMMENT "특성"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN pallet_type COMMENT "팔렛타입"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN single_double COMMENT "적재방법(S,D)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN pack_type COMMENT "포장방법"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN over_yn COMMENT "초과여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN csn_flag COMMENT "CSN입고여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN csn_date COMMENT "CSN입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN insert_man COMMENT "출고입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN insert_dt COMMENT "출고입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_out ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN pile_no COMMENT "입고Pile번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN prod_no COMMENT "제조번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN pallet_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN use_sok COMMENT "사용속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN use_wgt COMMENT "사용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN batch_no COMMENT "생산배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN in_batch_no COMMENT "사용배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj4t_sw_use ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN pile_no COMMENT "파일번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN pallet_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN gc_no COMMENT "재단호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN hero_lot_no COMMENT "HERO Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN lot_no COMMENT "대표Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN length COMMENT "세로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN pile_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN remain_sok COMMENT "잔량속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN prod_no COMMENT "재입고제조번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN use_yn COMMENT "사용상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN complete_yn COMMENT "사용완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN pile_no COMMENT "출고Pile번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN pallet_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN prod_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN length COMMENT "세로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN gc_no COMMENT "재단호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN hero_version COMMENT "HERO버전"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN lot_no COMMENT "대표Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN sok_cnt COMMENT "속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN sheet_cnt COMMENT "속당매수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN pile_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN double_cut COMMENT "쌍폭재단"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN cut_type COMMENT "재단방법(1:재단,2:이적)"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN bad_cnt COMMENT "불량속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_out ALTER COLUMN bad_wgt COMMENT "불량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN pile_no_in COMMENT "입고Pile번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN pile_no_out COMMENT "출고Pile번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN pallet_no COMMENT "팔렛번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN use_sok COMMENT "사용속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN use_wgt COMMENT "사용중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN good_cnt COMMENT "양품속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN bad_cnt COMMENT "불량속수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN material_no COMMENT "생산자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN in_material_no COMMENT "사용자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN batch_no COMMENT "생산배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN in_batch_no COMMENT "사용배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj5t_gc_use ALTER COLUMN bad_wgt COMMENT "불량속수의중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN roll_no COMMENT "롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN sm_no COMMENT "재단호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN hero_lot_no COMMENT "HERO Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN hero_prod_seq COMMENT "HERO 생산순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN roll_seq COMMENT "권취순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN lot_no COMMENT "Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN jr_no COMMENT "점보롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN paper_type COMMENT "지종코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN p_width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN roll_gubun COMMENT "롤구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN p_dia COMMENT "직경"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN p_length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN theo_wgt COMMENT "이론중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN core COMMENT "지관"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN link_cnt COMMENT "연결수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN roll_type COMMENT "롤타입"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN remain_len COMMENT "잔량길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN start_time COMMENT "재단시작시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN end_time COMMENT "재단종료시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN use_yn COMMENT "사용상태"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN complete_yn COMMENT "사용완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN bigo COMMENT "비고"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN wait_yn COMMENT "하권여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_in ALTER COLUMN bal_color COMMENT "발색구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN roll_no COMMENT "롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN prod_date COMMENT "생산일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN width COMMENT "가로"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN p_dia COMMENT "직경"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN p_length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN theo_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN sm_no COMMENT "포장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN hero_lot_no COMMENT "HERO_LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN lot_no COMMENT "Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN jr_no COMMENT "점보롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN roll_type COMMENT "롤타입"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN core COMMENT "지관"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN start_time COMMENT "생산시작시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN end_time COMMENT "생산종료시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN spend_time COMMENT "생산소요시각"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN insert_dt COMMENT "입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN roll_set_no COMMENT "권취번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN roll_seq COMMENT "권취순서"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN zcomm_cnlo COMMENT "연결처"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN zcomm_func COMMENT "구멍수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN zcomm_late COMMENT "후박"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN zcomm_bcor COMMENT "전공정조치"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN zcomm_sein COMMENT "전달정보"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN wait_yn COMMENT "하권여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN bal_color COMMENT "발색구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj6t_sm_out ALTER COLUMN mast_rl_no COMMENT "원ROLL번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN roll_no COMMENT "롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN prod_no COMMENT "제조번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN in_date COMMENT "입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN dia COMMENT "직경"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN theo_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN real_wgt COMMENT "실중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN pm_no COMMENT "초지호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN rp_no COMMENT "포장포기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN hero_lot_no COMMENT "HERO LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN lot_no COMMENT "LOT번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN jr_no COMMENT "JR번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN root COMMENT "전공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN root_no COMMENT "전공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN itchar COMMENT "특성"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN core COMMENT "지관"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN roll_gubun COMMENT "롤구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN remain_len COMMENT "잔량길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN remain_wgt COMMENT "잔량중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN use_date COMMENT "사용일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN use_yn COMMENT "사용여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN complete_yn COMMENT "재공완료여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN del_flag COMMENT "삭제여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN insert_man COMMENT "입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN insert_dt COMMENT "입고일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_in ALTER COLUMN bal_color COMMENT "발색구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN plant COMMENT "사업장"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN prod_no COMMENT "제조번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN prod_date COMMENT "출고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN rp_no COMMENT "포장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN shift COMMENT "반"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN work_class COMMENT "근무조"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN material_no COMMENT "자재번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN batch_no COMMENT "배치번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN paper_type COMMENT "지종"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN paper_nm COMMENT "지종명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN b_wgt COMMENT "평량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN color COMMENT "색상"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN color_nm COMMENT "색상명"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN gloss COMMENT "광택"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN width COMMENT "지폭"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN length COMMENT "길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN dia COMMENT "직경"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN pattern COMMENT "패턴"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN theo_wgt COMMENT "중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN real_wgt COMMENT "실중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN paji_len COMMENT "파지길이"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN paji_wgt COMMENT "파지중량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN schedule_unit COMMENT "생산차수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN group_no COMMENT "그룹번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN order_no COMMENT "오더번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN hero_lot_no COMMENT "HERO Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN hero_version COMMENT "HERO 버젼"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN lot_no COMMENT "Lot번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN jr_no COMMENT "사용롤번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN prod_code COMMENT "물류코드"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN work_group COMMENT "포장묶음번호"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN export_yn COMMENT "수출구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN grade COMMENT "등급"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN core COMMENT "지관"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN itchar COMMENT "특성"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN roll_gubun COMMENT "롤구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN csn_flag COMMENT "CSN입고여부"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN csn_date COMMENT "CSN입고일자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN link_cnt COMMENT "연결횟수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN hole_cnt COMMENT "구멍수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN yun_cnt COMMENT "연수"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN yun_wgt COMMENT "연량"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN del_flag COMMENT "삭제FLAG"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN order_type COMMENT "오더구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN arbpl COMMENT "작업장호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN insert_man COMMENT "입고입력자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN insert_dt COMMENT "입고입력일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN update_man COMMENT "수정자"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN update_dt COMMENT "수정일시"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN dest COMMENT "후공정"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN dest_no COMMENT "후공정호기"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN bal_color COMMENT "발색구분"; 
+# MAGIC ALTER TABLE hansol_paper.mes.bi_wj7t_rlw_out ALTER COLUMN in_roll_no COMMENT "재공ROLL번호"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_data ALTER COLUMN utag_id COMMENT "태그 ID"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_data ALTER COLUMN tag_date COMMENT "태그 날짜"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_data ALTER COLUMN enroll_date COMMENT "등록된 sysdate"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_data ALTER COLUMN tag_value COMMENT "태그 값"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_data ALTER COLUMN seq_tag COMMENT "Azure에서 어디까지 가져갔나 확인용.default nextval(pi_seq)"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_log ALTER COLUMN utag_id COMMENT "태그 ID, PK"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_log ALTER COLUMN work_group COMMENT "태그 ID 별 작업오더 번호, PK"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_log ALTER COLUMN work_seq COMMENT "작업오더 별 작업 번호, 한번에 작업을 못하기 때문에 끊어서 작업을 진행, PK"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_log ALTER COLUMN start_date COMMENT "pi2RDB 프로그램이 가져온 태그 시작날짜"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_log ALTER COLUMN end_date COMMENT "pi2RDB 프로그램이 가져온 태그 끝날짜"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN plant COMMENT "공장"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN plant_cd COMMENT "공장 코드"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN tag_id COMMENT "태그 ID"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN utag_id COMMENT "태그 ID (실제사용하는)"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN datasource COMMENT "데이터소스 (어디에사용하는)"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN tag_name COMMENT "태그 이름"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN tag_name_super COMMENT "태그 이름반영된 이름 (내부활용용도)"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN description COMMENT "Description"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN data_style COMMENT "스타일 (연속형,범주형)"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN data_units COMMENT "단위"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN min_value COMMENT "최소값"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN max_value COMMENT "최대값"; 
+# MAGIC ALTER TABLE hansol_paper.ipis.paperpi_master ALTER COLUMN nm_space COMMENT "네임스페이스 (default 12)"; 
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select t.comment, t.*
+# MAGIC   from system.information_schema.tables t
+# MAGIC  where 0=0
+# MAGIC    and table_catalog = 'hansol_paper'
+# MAGIC    and table_schema in ('mes','managed','ipis')
+
+# COMMAND ----------
+
+# DBTITLE 1,테이블 통계정보 확인
+# MAGIC %sql
+# MAGIC describe detail hansol_paper.ipis.paperpi_data
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select t1.tab_cnt, t2.*
+# MAGIC   from hansol_paper.managed.all_tbl_rows t1 inner join hansol_paper.managed.all_tbl_detail t2 on t1.tab_nm = t2.full_nm
+# MAGIC order by 1 desc  
+# MAGIC ;
+
+# COMMAND ----------
+
+# DBTITLE 1,컬럼정보 확인
+# MAGIC %sql
+# MAGIC select t.column_name, t.comment, t.*
+# MAGIC   from system.information_schema.columns t
+# MAGIC  where table_catalog = 'hansol_paper'
+# MAGIC    and t.comment is null
+# MAGIC    and table_schema not in ('managed','information_schema')
+# MAGIC order by t.table_name, t.ordinal_position  
+# MAGIC ;
+
+# COMMAND ----------
+
+# DBTITLE 1,뷰 정보 확인
+# MAGIC %sql
+# MAGIC select * from system.information_schema.views where table_catalog = 'hansol_paper' and table_schema = 'managed' order by 1 ;
+
+# COMMAND ----------
+
+# DBTITLE 1,스키마별 테이블 리스트 조회
+# MAGIC %sql 
+# MAGIC select t.table_catalog, t.table_schema, t.table_name, max(t2.comment) as comment, count(t.column_name)
+# MAGIC from system.information_schema.columns  t inner join system.information_schema.tables t2 on t.table_name = t2.table_name
+# MAGIC where t.table_catalog = 'hansol_paper'
+# MAGIC   and t.table_schema not in ('information_schema')
+# MAGIC   and t.table_name not in ('activity_log_raw','activity_log_bronze','activity_log_silver')
+# MAGIC group by t.table_catalog, t.table_schema, t.table_name
+# MAGIC order by 1,2 desc,3
+# MAGIC ;
+
+# COMMAND ----------
+
+# DBTITLE 1,테이블별 컬럼 정보
+# MAGIC %sql 
+# MAGIC select t.table_catalog, t.table_schema, t.table_name
+# MAGIC      , t2.comment as tab_comment
+# MAGIC      , t.ordinal_position as col_seq
+# MAGIC      , t.column_name
+# MAGIC      , t.comment as col_comment
+# MAGIC      , t.full_data_type, t.is_nullable, t.full_data_type
+# MAGIC from system.information_schema.columns  t inner join system.information_schema.tables t2 on t.table_name = t2.table_name
+# MAGIC where t.table_catalog = 'hansol_paper'
+# MAGIC   and t.table_schema not in ('information_schema')
+# MAGIC   and t.table_name not in ('activity_log_raw','activity_log_bronze','activity_log_silver')
+# MAGIC order by 1,2,3,5
+# MAGIC ;
+
+# COMMAND ----------
+
+# DBTITLE 1,컬럼별 테이블 리스트 조회
+# MAGIC %sql 
+# MAGIC select column_name, ordinal_position, full_data_type, count(*) as tab_cnt,  CONCAT_WS(', ', COLLECT_LIST(table_name)) as table_list
+# MAGIC from system.information_schema.columns 
+# MAGIC where table_catalog = 'hansol_paper' and table_schema = 'managed'
+# MAGIC group by column_name, ordinal_position, full_data_type
+# MAGIC order by 4 desc
+# MAGIC ;
+
+# COMMAND ----------
+
+
